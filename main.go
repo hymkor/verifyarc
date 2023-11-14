@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -11,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 )
+
+var flagCurdir = flag.String("C", ".", "set the current directory")
 
 func ignoreEOF(err error) error {
 	if err == io.EOF {
@@ -101,7 +104,7 @@ func verifyZip(zipName string, dir string) error {
 		index++
 		rc, err := f.Open()
 		return f.Name, rc, err
-	}, os.DirFS("."))
+	}, os.DirFS(dir))
 }
 
 func mains(args []string) error {
@@ -109,13 +112,14 @@ func mains(args []string) error {
 		return errors.New("too few arguments")
 	}
 	if strings.EqualFold(filepath.Ext(args[0]), ".zip") {
-		return verifyZip(args[0], ".")
+		return verifyZip(args[0], *flagCurdir)
 	}
 	return fmt.Errorf("%s: unsupported filetype", args[0])
 }
 
 func main() {
-	if err := mains(os.Args[1:]); err != nil {
+	flag.Parse()
+	if err := mains(flag.Args()); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
