@@ -72,7 +72,7 @@ func verify(enum func() (string, io.ReadCloser, error), fs1 fs.FS) error {
 			return err
 		}
 		if !same {
-			return fmt.Errorf("%s differs", filename)
+			return fmt.Errorf("ARCHIVE: [DIFFER] %s", filename)
 		}
 		fmt.Println("ARCHIVE: [OK]", filename)
 	}
@@ -80,10 +80,11 @@ func verify(enum func() (string, io.ReadCloser, error), fs1 fs.FS) error {
 		if d.IsDir() {
 			return nil
 		}
-		if _, ok := touch[filepath.ToSlash(path)]; !ok {
-			return fmt.Errorf("%s not found in archive", path)
+		if _, ok := touch[filepath.ToSlash(path)]; ok {
+			fmt.Println("FILESYS: [OK]", path)
+		} else {
+			fmt.Println("FILESYS: [NOT FOUND]", path)
 		}
-		fmt.Println("FILESYS: [OK]", path)
 		return nil
 	})
 }
