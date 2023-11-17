@@ -49,7 +49,7 @@ func compare(r1, r2 io.Reader) (bool, error) {
 
 type void = struct{}
 
-func verify(enum func() (string, io.ReadCloser, error), fs1 fs.FS) error {
+func verify(root string, enum func() (string, io.ReadCloser, error)) error {
 	touch := make(map[string]void)
 
 	for {
@@ -61,10 +61,10 @@ func verify(enum func() (string, io.ReadCloser, error), fs1 fs.FS) error {
 			break
 		}
 		touch[filepath.ToSlash(filename)] = void{}
-		r2, err := fs1.Open(filepath.Clean(filepath.FromSlash(filename)))
+		r2, err := os.Open(filepath.Join(root, filename))
 		if err != nil {
 			r1.Close()
-			return fmt.Errorf("%s: verify: os.Open: %w", filename, err)
+			return fmt.Errorf("%s: os.Open: %w", filename, err)
 		}
 		same, err := compare(r1, r2)
 		r1.Close()
@@ -77,7 +77,7 @@ func verify(enum func() (string, io.ReadCloser, error), fs1 fs.FS) error {
 		}
 		fmt.Println("ARCHIVE: [OK]", filename)
 	}
-	return fs.WalkDir(fs1, ".", func(path string, d fs.DirEntry, err error) error {
+	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
 		}
@@ -98,7 +98,7 @@ func verifyZip(zipName string, dir string) error {
 	defer zr.Close()
 
 	index := 0
-	return verify(func() (string, io.ReadCloser, error) {
+	return verify(dir, func() (string, io.ReadCloser, error) {
 		if index >= len(zr.File) {
 			return "", nil, nil
 		}
@@ -106,7 +106,7 @@ func verifyZip(zipName string, dir string) error {
 		index++
 		rc, err := f.Open()
 		return f.Name, rc, err
-	}, os.DirFS(dir))
+	})
 }
 
 func verifyTar(tarName string, dir string) error {
@@ -122,7 +122,7 @@ func verifyTar(tarName string, dir string) error {
 		in = _in
 	}
 	tr := tar.NewReader(in)
-	return verify(func() (string, io.ReadCloser, error) {
+	return verify(dir, func() (string, io.ReadCloser, error) {
 		for {
 			header, err := tr.Next()
 			if err != nil {
@@ -132,7 +132,7 @@ func verifyTar(tarName string, dir string) error {
 				return header.Name, io.NopCloser(tr), nil
 			}
 		}
-	}, os.DirFS(dir))
+	})
 }
 
 var version string = "snapshot"
