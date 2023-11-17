@@ -74,6 +74,9 @@ func verify(root string, enum func() (string, io.ReadCloser, error)) error {
 		if d.IsDir() {
 			return nil
 		}
+		if _path, err := filepath.Rel(root, path); err == nil {
+			path = _path
+		}
 		if _, ok := touch[filepath.ToSlash(path)]; ok {
 			fmt.Println("FILESYS: [OK]", path)
 		} else {
