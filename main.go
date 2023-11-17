@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"bufio"
 	"errors"
@@ -108,6 +109,32 @@ func verifyZip(zipName string, dir string) error {
 	}, os.DirFS(dir))
 }
 
+func verifyTar(tarName string, dir string) error {
+	var in io.Reader
+	if tarName == "" || tarName == "-" {
+		in = os.Stdin
+	} else {
+		_in, err := os.Open(tarName)
+		if err != nil {
+			return err
+		}
+		defer _in.Close()
+		in = _in
+	}
+	tr := tar.NewReader(in)
+	return verify(func() (string, io.ReadCloser, error) {
+		for {
+			header, err := tr.Next()
+			if err != nil {
+				return "", nil, err
+			}
+			if n := header.Name; len(n) <= 0 || n[len(n)-1] != '/' {
+				return header.Name, io.NopCloser(tr), nil
+			}
+		}
+	}, os.DirFS(dir))
+}
+
 func mains(args []string) error {
 	if len(args) < 1 {
 		return errors.New("too few arguments")
@@ -115,7 +142,7 @@ func mains(args []string) error {
 	if strings.EqualFold(filepath.Ext(args[0]), ".zip") {
 		return verifyZip(args[0], *flagCurdir)
 	}
-	return fmt.Errorf("%s: unsupported filetype", args[0])
+	return verifyTar(args[0], *flagCurdir)
 }
 
 func main() {
