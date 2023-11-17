@@ -16,13 +16,6 @@ import (
 
 var flagCurdir = flag.String("C", ".", "set the current directory")
 
-func ignoreEOF(err error) error {
-	if err == io.EOF {
-		return nil
-	}
-	return err
-}
-
 func compare(r1, r2 io.Reader) (bool, error) {
 	br1 := bufio.NewReader(r1)
 	br2 := bufio.NewReader(r2)
@@ -34,12 +27,12 @@ func compare(r1, r2 io.Reader) (bool, error) {
 				if err2 == io.EOF {
 					return true, nil
 				}
-				return false, nil
+				return false, err2
 			}
 			return false, err1
 		}
 		if err2 != nil {
-			return false, ignoreEOF(err2)
+			return false, err2
 		}
 		if c1 != c2 {
 			return false, nil
@@ -126,6 +119,9 @@ func verifyTar(tarName string, dir string) error {
 		for {
 			header, err := tr.Next()
 			if err != nil {
+				if err == io.EOF {
+					return "", nil, nil
+				}
 				return "", nil, err
 			}
 			if n := header.Name; len(n) <= 0 || n[len(n)-1] != '/' {
