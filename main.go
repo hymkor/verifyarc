@@ -4,13 +4,13 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -135,9 +135,13 @@ func verifyTar(tarName string, dir string) error {
 	}, os.DirFS(dir))
 }
 
+var version string = "snapshot"
+
 func mains(args []string) error {
 	if len(args) < 1 {
-		return errors.New("too few arguments")
+		return fmt.Errorf("%s %s-%s-%s by %s\n",
+			os.Args[0],
+			version, runtime.GOOS, runtime.GOARCH, runtime.Version())
 	}
 	if strings.EqualFold(filepath.Ext(args[0]), ".zip") {
 		return verifyZip(args[0], *flagCurdir)
