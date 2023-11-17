@@ -60,10 +60,10 @@ func verify(enum func() (string, io.ReadCloser, error), fs1 fs.FS) error {
 			break
 		}
 		touch[filepath.ToSlash(filename)] = void{}
-		r2, err := fs1.Open(filename)
+		r2, err := fs1.Open(filepath.Clean(filepath.FromSlash(filename)))
 		if err != nil {
 			r1.Close()
-			return fmt.Errorf("%s: %w", filename, err)
+			return fmt.Errorf("%s: verify: os.Open: %w", filename, err)
 		}
 		same, err := compare(r1, r2)
 		r1.Close()
