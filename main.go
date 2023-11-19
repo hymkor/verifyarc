@@ -3,7 +3,7 @@ package main
 import (
 	"archive/tar"
 	"archive/zip"
-	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -17,15 +17,18 @@ import (
 var flagCurdir = flag.String("C", ".", "set the current directory")
 
 func compare(r1, r2 io.Reader) (bool, error) {
-	br1 := bufio.NewReader(r1)
-	br2 := bufio.NewReader(r2)
+	const UNIT = 64 * 1024
+	var buffer1 [UNIT]byte
+	var buffer2 [UNIT]byte
+
 	for {
-		c1, err1 := br1.ReadByte()
-		c2, err2 := br2.ReadByte()
+		n1, err1 := io.ReadFull(r1, buffer1[:])
+		n2, err2 := io.ReadFull(r2, buffer2[:])
+
 		if err1 != nil {
-			if err1 == io.EOF {
-				if err2 == io.EOF {
-					return true, nil
+			if err1 == io.EOF || err1 == io.ErrUnexpectedEOF {
+				if err2 == io.EOF || err2 == io.ErrUnexpectedEOF {
+					return n1 == n2 && bytes.Equal(buffer1[:n1], buffer2[:n2]), nil
 				}
 				return false, err2
 			}
@@ -34,7 +37,7 @@ func compare(r1, r2 io.Reader) (bool, error) {
 		if err2 != nil {
 			return false, err2
 		}
-		if c1 != c2 {
+		if n1 != n2 || !bytes.Equal(buffer1[:n1], buffer2[:n2]) {
 			return false, nil
 		}
 	}
