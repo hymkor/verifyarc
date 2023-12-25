@@ -47,6 +47,7 @@ type void = struct{}
 
 func verify(root string, enum func() (string, io.ReadCloser, error)) error {
 	touch := make(map[string]void)
+	touchedDir := make(map[string]void)
 
 	for {
 		filename, r1, err := enum()
@@ -57,7 +58,8 @@ func verify(root string, enum func() (string, io.ReadCloser, error)) error {
 			break
 		}
 		touch[filepath.ToSlash(filename)] = void{}
-		r2, err := os.Open(filepath.Join(root, filename))
+		localPath := filepath.Join(root, filename)
+		r2, err := os.Open(localPath)
 		if err != nil {
 			r1.Close()
 			return fmt.Errorf("%s: os.Open: %w", filename, err)
@@ -72,21 +74,29 @@ func verify(root string, enum func() (string, io.ReadCloser, error)) error {
 			return fmt.Errorf("ARCHIVE: [DIFFER] %s", filename)
 		}
 		fmt.Println("ARCHIVE: [OK]", filename)
+		localDir := filepath.Dir(localPath)
+		touchedDir[localDir] = void{}
 	}
-	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() {
+	for tdir := range touchedDir {
+		err := filepath.WalkDir(tdir, func(path string, d fs.DirEntry, err error) error {
+			if d.IsDir() {
+				return nil
+			}
+			if _path, err := filepath.Rel(root, path); err == nil {
+				path = _path
+			}
+			if _, ok := touch[filepath.ToSlash(path)]; ok {
+				fmt.Println("FILESYS: [OK]", path)
+			} else {
+				fmt.Println("FILESYS: [NOT FOUND]", path)
+			}
 			return nil
+		})
+		if err != nil {
+			return err
 		}
-		if _path, err := filepath.Rel(root, path); err == nil {
-			path = _path
-		}
-		if _, ok := touch[filepath.ToSlash(path)]; ok {
-			fmt.Println("FILESYS: [OK]", path)
-		} else {
-			fmt.Println("FILESYS: [NOT FOUND]", path)
-		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func verifyZip(zipName string, dir string) error {
