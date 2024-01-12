@@ -122,6 +122,7 @@ func verifyTar(tarName string, dir string) error {
 	var in io.Reader
 	if tarName == "" || tarName == "-" {
 		in = os.Stdin
+		defer io.Copy(io.Discard, os.Stdin)
 	} else {
 		_in, err := os.Open(tarName)
 		if err != nil {
