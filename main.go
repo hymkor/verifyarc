@@ -148,6 +148,53 @@ func verifyTar(tarName string, dir string) error {
 	})
 }
 
+func verifyDir(targetDir string, dir string) error {
+	var atLater []string
+	entry, err := os.ReadDir(targetDir)
+	if err != nil {
+		return err
+	}
+	return verify(dir, func() (string, io.ReadCloser, error) {
+		for {
+			for len(entry) <= 0 {
+				if len(atLater) <= 0 {
+					return "", nil, nil
+				}
+				targetDir = atLater[len(atLater)-1]
+				atLater = atLater[:len(atLater)-1]
+				entry, err = os.ReadDir(targetDir)
+				if err != nil {
+					return "", nil, err
+				}
+			}
+			p := entry[len(entry)-1]
+			entry = entry[:len(entry)-1]
+			fullpath := filepath.Join(targetDir, p.Name())
+			if !p.IsDir() {
+				fd, err := os.Open(fullpath)
+				return fullpath, fd, err
+			}
+			if name := p.Name(); name != "." && name != ".." {
+				atLater = append(atLater, fullpath)
+			}
+		}
+	})
+}
+
+func isDir(s string) bool {
+	if len(s) <= 0 {
+		return false
+	}
+	if last := s[len(s)-1]; last == '/' || last == '\\' {
+		return true
+	}
+	stat, err := os.Stat(s)
+	if err != nil {
+		return false
+	}
+	return stat.IsDir()
+}
+
 var version string = "snapshot"
 
 func mains(args []string) error {
@@ -158,6 +205,9 @@ func mains(args []string) error {
 	}
 	if strings.EqualFold(filepath.Ext(args[0]), ".zip") {
 		return verifyZip(args[0], *flagCurdir)
+	}
+	if isDir(args[0]) {
+		return verifyDir(args[0], *flagCurdir)
 	}
 	return verifyTar(args[0], *flagCurdir)
 }
