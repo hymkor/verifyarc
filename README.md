@@ -32,3 +32,21 @@ $ verifyarc {-C (DIR)} (SUBDIR)
 - Compare with extracted files instead of ones in an archive
     - Test whether (SUBDIR) is same as (DIR)/(SUBDIR) or not
     - It is equivalent to `tar cf - (SUBDIR) | verifyarc -C (DIR) -`
+
+Install
+-------
+
+Download the binary package from [Releases](https://github.com/hymkor/verifyarc/releases) and extract the executable.
+
+### for scoop-installer
+
+```
+scoop install https://raw.githubusercontent.com/hymkor/verifyarc/master/verifyarc.json
+```
+
+or
+
+```
+scoop bucket add hymkor https://github.com/hymkor/scoop-bucket
+scoop install verifyarc
+```
