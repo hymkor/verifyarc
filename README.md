@@ -24,3 +24,11 @@ $ gzip -dc FOO.tar.gz | verifyarc {-C (DIR)} -
 - When `(DIR)/D.obj` exists, but `FOO.ZIP` does not contain `D.obj`, `verifies` reports it.
     - It continues until displaying all files that are not found in the archive.
 - When `-C (DIR)` is omitted, `(DIR)` is set the current working directory.
+
+```
+$ verifyarc {-C (DIR)} (SUBDIR)
+```
+
+- Compare with extracted files instead of ones in an archive
+    - Test whether (SUBDIR) is same as (DIR)/(SUBDIR) or not
+    - It is equivalent to `tar cf - (SUBDIR) | verifyarc -C (DIR) -`
